@@ -1,0 +1,1780 @@
+
+####packages upload
+
+library(readxl)
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Epi Germany Analysis.xlsx")
+
+GermanSpondyTotal <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c(("Total")))
+
+
+library(tidyverse)
+install.packages("hrbrthemes")
+library(hrbrthemes)
+hrbrthemes::import_roboto_condensed() 
+install.packages("kableExtra")
+library("kableExtra")
+
+options(knitr.table.format = "html")
+
+
+
+library(streamgraph)
+install.packages("remotes")
+remotes::install_github("hrbrmstr/streamgraph")
+
+library(viridis)
+install.packages("viridis")
+
+library(DT)
+install.packages("DT")
+
+library(plotly)
+install.packages("plotly")
+
+install.packages("ggplot2")
+library(ggplot2)
+
+#install palateer package
+install.packages("devtools")
+devtools::install_github("EmilHvitfeldt/paletteer")
+
+
+
+
+#graph 1: age-stratified admissions for spondylodiscitis
+
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Epi Germany Analysis.xlsx")
+
+
+# Load dataset from github
+GermanSpondy <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                         "Age 30-39", "Age 40-49", "Age 50-59",
+                                         "Age 60-69", 
+                                         "Age 70-79", "Age 80-89",
+                                         "Age 90+", "Total"))
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=Diagnoses, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of diagnoses of Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+age_labels <- c("Age 0-19", "Age 20-29",
+                "Age 30-39", "Age 40-49", "Age 50-59",
+                "Age 60-69", 
+                "Age 70-79", "Age 80-89",
+                "Age 90+", "Total")
+
+# Perform pairwise t-tests between each age group to see if difference between age are significant
+t_tests <- pairwise.t.test(GermanSpondy$Diagnoses, GermanSpondy$Age,
+                           p.adjust.method = "bonferroni")
+
+
+
+#NEW BOOST: Heatmap for age to make it clearer - Incidence
+
+# Load dataset from github
+GermanSpondyHeat <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+", "Total"))
+
+install.packages("reshape2")
+library(reshape2)
+
+
+
+library(viridis)
+library(scales)
+
+# Create a heatmap
+GermanSpondyHeat %>%
+  ggplot(aes(x = Year, y = Age, fill = Incidence)) +
+  geom_tile(color = "white", size = 0.1) +  # Add borders to each cell
+  geom_text(aes(label = Incidence), size = 3) +  # Add text to each cell
+  scale_fill_viridis(name = "Incidence per 100,000 population", trans = "log10") +  # Use a colorblind-friendly color scale
+  theme_minimal() +
+  labs(title = "Age-stratified incidence of Spondylodiscitis (M46.2, M46.3, M46.4) per 100,000 population",
+       x = "Year",
+       y = "",
+       fill = "Incidence") +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 10),
+        axis.text.y = element_text(size = 10),
+        title = element_text(size = 14),
+        plot.title = element_text(hjust = 0.5)) + 
+  theme_ipsum(base_size = 12, base_family = "Arial")
+
+
+
+
+#line chart is better
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+
+# Create a line chart
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(RColorBrewer)
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(scales)
+
+# Define color palette (excluding "Total")
+palette <- hue_pal()(length(unique(GermanSpondyHeat$Age)) - 1)
+
+# Create a linear plot
+linear_plot <- GermanSpondyHeat %>%
+  ggplot(aes(x = as.factor(Year), y = Incidence, group = Age)) +
+  geom_line(data = subset(GermanSpondyHeat, Age != "Total"),
+            aes(color = Age), size = 1) +
+  geom_line(data = subset(GermanSpondyHeat, Age == "Total"),
+            linetype = "dashed", color = "black", size = 1) +
+  scale_color_manual(values = palette) +
+  theme_classic() +
+  labs(title = "Linear Scale",
+       x = "Year",
+       y = "Age-adjusted incidence per 100,000 population",
+       color = "Age Group",
+       shape = "Age Group") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        legend.position = "right",
+        legend.title = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 10)) 
+
+# Create a log plot
+log_plot <- GermanSpondyHeat %>%
+  ggplot(aes(x = as.factor(Year), y = Incidence, group = Age)) +
+  geom_line(data = subset(GermanSpondyHeat, Age != "Total"),
+            aes(color = Age), size = 1) +
+  geom_line(data = subset(GermanSpondyHeat, Age == "Total"),
+            linetype = "dashed", color = "black", size = 1) +
+  scale_y_log10() + 
+  scale_color_manual(values = palette) +
+  theme_classic() +
+  labs(title = "Log Scale",
+       x = "Year",
+       y = "Log10(Age-adjusted incidence per 100,000 population)",
+       color = "Age Group",
+       shape = "Age Group") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        legend.position = "right",
+        legend.title = element_text(face = "bold", size = 12),
+        legend.text = element_text(size = 10)) 
+
+# Arrange the plots side by side
+grid.arrange(linear_plot, log_plot, ncol = 2)
+
+
+
+
+#find highest incidence risers per age group
+
+
+# Define function to calculate changes
+calculate_changes <- function(data, age_group) {
+  
+  # Filter data for the specific age group
+  data_age_group <- data %>%
+    filter(Age == age_group)
+  
+  # Get values for 2005 and 2021
+  value_2005 <- data_age_group$Incidence[data_age_group$Year == 2005]
+  value_2021 <- data_age_group$Incidence[data_age_group$Year == 2021]
+  
+  # Calculate absolute and relative change
+  absolute_change <- value_2021 - value_2005
+  relative_change <- (absolute_change / value_2005) * 100
+  
+  # Return a data frame with the results
+  return(data.frame(Age_Group = age_group, 
+                    Incidence_2005 = value_2005,
+                    Incidence_2021 = value_2021,
+                    Absolute_Change = absolute_change, 
+                    Relative_Change = relative_change))
+}
+
+# Filter data to exclude "Total" in Age
+filtered_data <- GermanSpondyHeat %>%
+  filter(Age != "Total")
+
+# Get the unique age groups
+age_groups <- unique(filtered_data$Age)
+
+# Initialize a results data frame
+results <- data.frame(Age_Group = character(), 
+                      Incidence_2005 = numeric(),
+                      Incidence_2021 = numeric(),
+                      Absolute_Change = numeric(), 
+                      Relative_Change = numeric())
+
+# Iterate over each age group and calculate changes
+for (age_group in age_groups) {
+  results <- rbind(results, calculate_changes(filtered_data, age_group))
+}
+
+# Print the age groups with the top 3 absolute changes
+top_absolute_changes <- results %>%
+  arrange(desc(Absolute_Change)) %>%
+  head(3)
+
+print("Top 3 age groups with the highest absolute changes:")
+print(top_absolute_changes)
+
+# Print the age groups with the top 3 relative changes
+top_relative_changes <- results %>%
+  arrange(desc(Relative_Change)) %>%
+  head(3)
+
+print("Top 3 age groups with the highest relative changes:")
+print(top_relative_changes)
+
+
+# Define function to calculate changes
+calculate_changes <- function(data, age_group) {
+  
+  # Filter data for the specific age group
+  data_age_group <- data %>%
+    filter(Age == age_group)
+  
+  # Get values for 2005 and 2021
+  value_2005 <- data_age_group$Incidence[data_age_group$Year == 2005]
+  value_2021 <- data_age_group$Incidence[data_age_group$Year == 2021]
+  
+  # Get population values for 2005 and 2021
+  pop_2005 <- data_age_group$Population[data_age_group$Year == 2005]
+  pop_2021 <- data_age_group$Population[data_age_group$Year == 2021]
+  
+  # Calculate absolute and relative change
+  absolute_change <- value_2021 - value_2005
+  relative_change <- (absolute_change / value_2005) * 100
+  
+  # Calculate proportional changes
+  prop_change <- ((pop_2021 - pop_2005) / pop_2005) * 100
+  
+  # Calculate adjusted incidence rate for 2021
+  adjusted_value_2021 <- value_2005 * (1 + prop_change / 100)
+  
+  # Calculate the difference between the actual and adjusted incidence in 2021
+  incidence_diff <- value_2021 - adjusted_value_2021
+  
+  # Return a data frame with the results
+  return(data.frame(Age_Group = age_group, 
+                    Incidence_2005 = value_2005,
+                    Incidence_2021 = value_2021,
+                    Absolute_Change = absolute_change, 
+                    Relative_Change = relative_change,
+                    Proportional_Change = prop_change,
+                    Adjusted_Incidence_2021 = adjusted_value_2021,
+                    Incidence_Diff = incidence_diff))
+}
+
+# Get the unique age groups
+age_groups <- unique(filtered_data$Age)
+
+# Initialize a results data frame
+results <- data.frame(Age_Group = character(), 
+                      Incidence_2005 = numeric(),
+                      Incidence_2021 = numeric(),
+                      Absolute_Change = numeric(), 
+                      Relative_Change = numeric(),
+                      Proportional_Change = numeric(),
+                      Adjusted_Incidence_2021 = numeric(),
+                      Incidence_Diff = numeric())
+
+# Iterate over each age group and calculate changes
+for (age_group in age_groups) {
+  results <- rbind(results, calculate_changes(filtered_data, age_group))
+}
+
+# Filter results to show only the age groups where the increase in incidence is
+# larger than what could be explained by population growth alone
+results_pop_adjusted <- results %>%
+  filter(Incidence_Diff > 0)
+
+# Print the results
+print("Age groups where the increase in incidence is larger than what could be explained by population growth alone:")
+print(results_pop_adjusted)
+
+
+
+
+# Assuming you have a data frame named 'GermanSpondyHeat' with columns 'Age' and 'Year' for age groups and years, and 'Incidence' for incidence
+
+# Perform two-way ANOVA
+result <- aov(Incidence ~ as.factor(Age) + as.factor(Year), data = GermanSpondyHeat)
+
+# Check ANOVA table
+summary(result)
+
+# Perform post-hoc tests for pairwise comparisons (Tukey's test) for age groups
+tukey_age <- TukeyHSD(result, "as.factor(Age)")
+tukey_age
+
+# Perform post-hoc tests for pairwise comparisons (Tukey's test) for years
+tukey_year <- TukeyHSD(result, "as.factor(Year)")
+tukey_year
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##################Statistical analysis for Diagnoses (Age and Years, and Total)
+
+'FOR EACH AGE GROUP SEPERATE OVER THE YEARS'
+
+# Split the data frame into separate data frames for each age group
+age_data_list <- split(GermanSpondy, GermanSpondy$Age)
+
+# Define a function to fit a linear regression model for each age group
+fit_lm_age <- function(df) {
+  lm_fit <- lm(Diagnoses ~ ., data = df)
+  return(lm_fit)
+}
+
+
+# Fit a separate linear regression model for each age group
+lm_age_list <- lapply(age_data_list, fit_lm_age)
+
+# Print the summary of each linear regression model
+for (i in seq_along(lm_age_list)) {
+  age_label <- names(lm_age_list)[i]
+  print(paste("Age group", age_label))
+  print(summary(lm_age_list[[i]]))
+}
+
+
+age_data_list <- split(GermanSpondy, GermanSpondy$Age)
+
+#### Total diagnoses regressed to all other variables 
+
+lm_fit_all <- lm(Diagnoses ~ as.factor(Year)	+ as.factor(Age) +	Incidence+	LOS+	`Regular DC` +	`DC against medical advise` +	`Death` +	`Transfer to other hospital` +	`DC to rehab/care home/hospice` +	`Proportion of DC being Death` +	`Death:Diagnoses` +	`Diagnoses w/spinal fusion` +	`Diagnoses w/vertebral body replacement` +	`Diagnoses w/complex spinal reconstruction`, data = GermanSpondy)
+
+# Print the summary of the model
+print(summary(lm_fit_all))
+
+
+# 'BETWEEN EACH AGE GROUP'
+
+lm1 <- lm(Diagnoses ~ as.factor(Year) + as.factor(Age)  + Incidence + 
+            LOS + `Regular DC` + `DC against medical advise` + Death + `Transfer to other hospital` + 
+            `DC to rehab/care home/hospice` + `Proportion of DC being Death` + `Death:Diagnoses` + 
+            `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+            `Diagnoses w/complex spinal reconstruction`, data = GermanSpondy)
+
+lm2 <- lm(Diagnoses ~ as.factor(Age) + Incidence + 
+            LOS + `Regular DC` + `DC against medical advise` + Death + `Transfer to other hospital` + 
+            `DC to rehab/care home/hospice` + `Proportion of DC being Death` + `Death:Diagnoses` + 
+            `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+            `Diagnoses w/complex spinal reconstruction`, data = GermanSpondy)
+
+
+
+anova(lm1, lm2)
+
+
+library(multcomp)
+
+lm_age <- lm(Diagnoses ~ as.factor(Year) + as.factor(Age) + Incidence + LOS + 
+               `Regular DC` + `DC against medical advise` + Death + 
+               `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+               `Proportion of DC being Death` + `Death:Diagnoses` + 
+               `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+               `Diagnoses w/complex spinal reconstruction`, 
+             data = GermanSpondy)
+t_tests <- pairwise.t.test(GermanSpondy$Diagnoses, GermanSpondy$Age,
+                           p.adjust.method = "bonferroni")
+# View the results
+t_tests
+
+
+################################
+
+#graph 1.2: age stratified diagnoses of spondylodiscits with spinal fusion
+
+
+# Load dataset from github
+GermanSpondy <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+", "Total" ))
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Diagnoses w/spinal fusion`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of diagnoses of Spondylodiscitis w/ spinal fusion (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+#graph 1.3: age stratified diagnoses of spondylodiscits with VBR
+
+
+# Load dataset from github
+GermanSpondy <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+", "Total"))
+max(GermanSpo)
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Diagnoses w/vertebral body replacement`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of diagnoses of Spondylodiscitis w/ vertebral body replacement (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+
+#graph 1.4: age stratified diagnoses of spondylodiscits with complex spinal reconstruction
+
+
+# Load dataset from github
+GermanSpondy <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+", "Total"))
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Diagnoses w/complex spinal reconstruction`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of diagnoses of Spondylodiscitis w/ complex spinal reconstruction (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+#comparative line plots for type of surgeries
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(viridis) # for scale_color_viridis
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(viridis) # for scale_color_viridis
+
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(viridis) # for scale_color_viridis
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(viridis)  # for the viridis color palette
+
+# Ensure your dataset is in long format
+GermanSpondy2021_selected <- GermanSpondyTotal %>% 
+  select(Year, `Spinal fusion (OPS-2023: 5-836)` = `Diagnoses w/spinal fusion`, 
+         `Vertebral body replacement (OPS-2023: 5-837)` = `Diagnoses w/vertebral body replacement`, 
+         `Complex spinal reconstruction (OPS-2023: 5-838)` = `Diagnoses w/complex spinal reconstruction`) %>% 
+  pivot_longer(cols = c("Spinal fusion (OPS-2023: 5-836)", 
+                        "Vertebral body replacement (OPS-2023: 5-837)", 
+                        "Complex spinal reconstruction (OPS-2023: 5-838)"),
+               names_to = "DiagnosisType",
+               values_to = "Count")
+
+# Create a new dataset aggregating all types together for each year
+TotalCountPerYear <- GermanSpondy2021_selected %>% 
+  group_by(Year) %>% 
+  summarise(Count = sum(Count), DiagnosisType = "Total")
+
+# Bind the new dataset with the original one
+GermanSpondy2021_combined <- bind_rows(GermanSpondy2021_selected, TotalCountPerYear)
+
+# Convert DiagnosisType to factor and specify the levels
+GermanSpondy2021_combined$DiagnosisType <- factor(GermanSpondy2021_combined$DiagnosisType, 
+                                                  levels = c("Spinal fusion (OPS-2023: 5-836)", 
+                                                             "Vertebral body replacement (OPS-2023: 5-837)", 
+                                                             "Complex spinal reconstruction (OPS-2023: 5-838)", 
+                                                             "Total"))
+
+
+# Create line plots
+ggplot(GermanSpondy2021_combined, aes(x=Year, y=Count)) +
+  geom_line(aes(color=DiagnosisType, linetype=DiagnosisType), size=1.5) +
+  scale_color_manual(values = c(viridis(3), "red")) +
+  scale_linetype_manual(values = c(rep("solid", nlevels(GermanSpondy2021_combined$DiagnosisType) - 1), "dashed")) +
+  labs(x = "Year", y = "Number of diagnoses", color = "Diagnosis Type", linetype = "Diagnosis Type",
+       title = "Yearly count of diagnoses of Spondylodiscitis (M46.2, M46.3, M46.4) with surgical interventions (OPS 5-836 – 5-838)") +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(face = "italic"),
+    legend.position="bottom",
+    legend.title = element_text(face = "bold"),
+    panel.grid.major = element_line(colour = "grey", linetype = "dashed"),
+    panel.grid.minor = element_blank()
+  )
+
+
+#better
+
+p <- ggplot(GermanSpondy2021_combined, aes(x=Year, y=Count)) +
+  geom_line(aes(color=DiagnosisType, linetype=DiagnosisType), size=1.5) +
+  scale_color_manual(values = c(viridis(3), "red")) +
+  scale_linetype_manual(values = c(rep("solid", length(levels(GermanSpondy2021_combined$DiagnosisType)) - 1), "dashed")) +
+  labs(x = "Year", y = "Number of diagnoses", color = "Surgical Intervention", linetype = "Surgical Intervention",
+       title = "Number of diagnoses of Spondylodiscitis with surgical interventions  (M46.2, M46.3, M46.4)") +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(face = "bold", margin = margin(b = 30)),
+    plot.subtitle = element_text(face = "italic"),
+    legend.position="bottom",
+    legend.title = element_text(face = "bold", size = 9),
+    legend.direction = "horizontal",
+    legend.key.size = unit(1.5, "cm"),
+    legend.text = element_text(size = 10),
+    legend.spacing.y = unit(-0.2, "cm"),
+    legend.box = "horizontal",
+    panel.grid.major = element_line(colour = "grey", linetype = "dashed"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(2, 2, 2, 2, "cm") # adjust the numbers as needed
+  ) +
+  guides(colour = guide_legend(nrow = 2, byrow = TRUE))  # Changing the guide for the colour legend
+
+print(p)
+
+
+#abb
+
+
+
+
+
+#ANOVA age x discharge
+
+Spondylodiscitis_Age_Diagnoses <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Age Diagnoses.xlsx")
+
+Age <- as.factor(Spondylodiscitis_Age_Diagnoses$Age)
+
+DCDCAgeanova1 <- anova(lm(n ~ as.factor(Year) + as.factor(Age), data = Spondylodiscitis_Age_Diagnoses))
+
+
+
+DCAgeanova <- anova(lm(n ~. + 0, data = Spondylodiscitis_Age_Diagnoses))
+summary(DCAgeanova)
+
+GermanSpondy2 <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+"))
+
+
+#ANOVA surgery types
+
+Surgery_Types <- read_excel("OneDrive/Most important back up/Spondylodiscitis Germany/Surgery Types.xlsx")
+
+Surgery_Types$Type <- as.factor(Surgery_Types$Type)
+
+AnovaTypes <-  anova(lm(n ~ as.factor(Year) + Type + 0, data = Surgery_Types))
+
+summary(AnovaTypes)
+
+
+#SF
+lm_age_SF <- lm(`Diagnoses w/spinal fusion` ~ 0 +as.factor(Year) + as.factor(Age) + Incidence + Death + 
+                   `Regular DC` + `DC against medical advise` + Diagnoses + 
+                   `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                   `Proportion of DC being Death` + `Death:Diagnoses` + 
+                   LOS + `Diagnoses w/vertebral body replacement` + 
+                   `Diagnoses w/complex spinal reconstruction`, 
+                 data = GermanSpondy)
+
+summary(lm_age_SF)
+
+
+
+# View the results
+# Perform ANOVA
+result <- aov(`Diagnoses w/spinal fusion` ~ as.factor(Age) + as.factor(Year) , data = GermanSpondy)
+
+
+
+#VBR
+
+# Check ANOVA table
+summary(result)
+
+
+
+
+lm_age_VBR <- lm(`Diagnoses w/vertebral body replacement` ~ 0 +as.factor(Year) + as.factor(Age) + Incidence + Death + 
+                  `Regular DC` + `DC against medical advise` + Diagnoses + 
+                  `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                  `Proportion of DC being Death` + `Death:Diagnoses` + 
+                  LOS + `Diagnoses w/spinal fusion` + 
+                  `Diagnoses w/complex spinal reconstruction`, 
+                data = GermanSpondy)
+
+summary(lm_age_VBR)
+
+
+
+# View the results
+# Perform ANOVA
+resultVBR <- aov(`Diagnoses w/vertebral body replacement` ~ as.factor(Age) + as.factor(Year) , data = GermanSpondy)
+
+# Check ANOVA table
+summary(resultVBR)
+
+
+
+#CSR
+
+
+
+lm_age_CSR <- lm(`Diagnoses w/complex spinal reconstruction` ~ 0 +as.factor(Year) + as.factor(Age) + Incidence + Death + 
+                   `Regular DC` + `DC against medical advise` + Diagnoses + 
+                   `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                   `Proportion of DC being Death` + `Death:Diagnoses` + 
+                   LOS + `Diagnoses w/spinal fusion` + 
+                   `Diagnoses w/vertebral body replacement`, 
+                 data = GermanSpondy)
+
+summary(lm_age_CSR)
+
+
+
+# View the results
+# Perform ANOVA
+resultCSR <- aov(`Diagnoses w/complex spinal reconstruction` ~ as.factor(Age) + as.factor(Year) , data = GermanSpondy)
+
+# Check ANOVA table
+summary(resultCSR)
+
+
+
+
+
+
+
+
+
+
+
+# View the results
+# Perform ANOVA
+result <- aov(Death ~ as.factor(Age) + as.factor(Year) , data = GermanSpondy)
+
+# Check ANOVA table
+summary(result)
+
+
+
+DCAgeanova <- anova(lm(Diagnoses ~ . + 0, data = GermanSpondyTotal))
+summary(DCAgeanova)
+
+
+GermanSpondy2 <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Age 0-19", "Age 20-29",
+                                                          "Age 30-39", "Age 40-49", "Age 50-59",
+                                                          "Age 60-69", 
+                                                          "Age 70-79", "Age 80-89",
+                                                          "Age 90+"))
+
+library(ggthemes)
+
+
+#graph 2: NOT age-stratified INCIDENCE of spondylodiscitis 
+
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Epi Germany Analysis.xlsx")
+
+
+# Load dataset from github
+
+
+GermanSpondyIncidence <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Total"))
+
+
+Spondylodiscitis_Epi_Germany_Analysis %>%
+  ggplot( aes(x=Year, y=Incidence, fill = Age)) +
+  geom_line() +
+  ggtitle("Incidence of spondyldoscitis (M46.2, M46.3, M46.4) in Germany per 100,000 population") +
+  theme_ipsum() +
+  ylab("n per 100,000") + scale_color_brewer(palette = "Accent") +
+  theme_ipsum() + 
+  theme(
+    legend.position="bottom",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=12, hjust = 0.5),
+    axis.text.x = element_text(size = 8, angle = 90),
+    axis.title.y = element_text(size = 9, margin = margin(t = 0, r = 10, b = 0, l = 0)
+    ))
+
+Spondylodiscitis_Epi_Germany_Analysis %>%
+  # Exclude "Total" from Age
+  filter(Age != "Total") %>%
+  ggplot(aes(x = Year, y = Diagnoses, fill = Age)) +
+  geom_area(color = "black", size = 0.1, alpha = 0.6) +
+  scale_fill_brewer(palette = "Spectral") +
+  labs(title = "Number of diagnoses of Spondylodiscitis (M46.2, M46.3, M46.4) in Germany",
+       y = "n per 100,000",
+       fill = "Age group") +
+  theme_ipsum(base_size = 12, base_family = "Arial") +
+  theme(
+    legend.position = "bottom",
+    legend.key.size = unit(1, "cm"),
+    legend.box.spacing = unit(2, "cm"), 
+    legend.spacing.x = unit(0.5, "cm"),# Adjust the size of the legend boxes
+    plot.title = element_text(hjust = 0.5, margin = margin(t = 15, r = 0, b = 20, l = 0)),  # Move the title higher
+    axis.text.x = element_text(size = 10, angle = 90, hjust = 1),
+    axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey95"),
+    panel.background = element_rect(fill = "grey98"),
+    strip.background = element_rect(fill = "grey95", color = "grey20"),
+    strip.text = element_text(color = "grey10"),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  )
+
+
+# Display the graph
+graph
+
+
+library(hrbrthemes)  # for theme_ipsum
+library(RColorBrewer)  # for color palette
+
+
+
+#graph 3: mortality:diagnoses ratio line graph
+
+GermanSpondyIncidence <- Spondylodiscitis_Epi_Germany_Analysis %>% 
+  filter(Spondylodiscitis_Epi_Germany_Analysis$Age %in% c("Total"))
+
+
+GermanSpondyIncidence %>%
+  ggplot( aes(x=Year, y=`Death:Diagnoses`)) +
+  geom_line() +
+  ggtitle("Total death:diagnoses ratio of spondyldoscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  ylab("n per 100,000") + scale_color_brewer(palette = "Accent") +
+  theme_ipsum() + 
+  theme(
+    legend.position="bottom",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=12, hjust = 0.5),
+    axis.text.x = element_text(size = 8, angle = 90),
+    axis.title.y = element_text(size = 9, margin = margin(t = 0, r = 10, b = 0, l = 0)
+    ))
+
+
+##################Statistical analysis for Death (Age and Years, and Total)
+
+'FOR EACH AGE GROUP SEPERATE OVER THE YEARS'
+
+
+GermanSpondy  <-Spondylodiscitis_Epi_Germany_Analysis 
+
+# Split the data frame into separate data frames for each age group
+age_data_list <- split(GermanSpondy, GermanSpondy$Age)
+
+# Define a function to fit a linear regression model for each age group
+fit_lm_death <- function(df) {
+  lm_fit <- lm(Death ~ as.factor(Year)	+ as.factor(Age) + Diagnoses +	Incidence+	LOS+	`Regular DC` +	`DC against medical advise` +	`Transfer to other hospital` +	`DC to rehab/care home/hospice` +	`Proportion of DC being Death` +	`Death:Diagnoses` +	`Diagnoses w/spinal fusion` +	`Diagnoses w/vertebral body replacement` +	`Diagnoses w/complex spinal reconstruction`, data = df)
+  return(lm_fit)
+}
+
+
+# Fit a separate linear regression model for each age group
+lm_age_listdeath <- lapply(age_data_list, fit_lm_death)
+
+# Print the summary of each linear regression model
+for (i in seq_along(lm_age_listdeath)) {
+  age_label <- names(lm_age_listdeath)[i]
+  print(paste("Age group", age_label))
+  print(summary(lm_age_listdeath[[i]]))
+}
+
+library(stargazer)
+
+# Combine all regression models into a list
+reg_models <- list(lm_age_listdeath[[1]], lm_age_listdeath[[2]], lm_age_listdeath[[3]], 
+                   lm_age_listdeath[[4]], lm_age_listdeath[[5]], lm_age_listdeath[[6]], 
+                   lm_age_listdeath[[7]], lm_age_listdeath[[8]])
+
+# Set the labels for each regression model
+reg_labels <- c("Age group Age 0-19", "Age group Age 20-29", "Age group Age 30-39", 
+                "Age group Age 40-49", "Age group Age 50-59", "Age group Age 60-69", 
+                "Age group Age 70-79", "Age group Age 80-89", "Age group Age 90+", 
+                "Age group Total")
+
+# Use stargazer to produce LaTeX output
+stargazer(reg_models, title = "Regression Results by Age Group", type = "latex",
+          header = FALSE, label = "tab:reg_results", covariate.labels = c("Year"),
+          dep.var.labels = reg_labels, omit.stat = "f", out = "reg_results.tex")
+
+
+'###############'
+
+
+age_data_list <- split(GermanSpondy, GermanSpondy$Age)
+
+#### Death regressed to all other variables 
+
+lm_fit_all <- lm(Death ~ ., data = GermanSpondy)
+
+# Print the summary of the model
+print(summary(lm_fit_all))
+
+# Convert to factor
+GermanSpondy$Age <- as.factor(GermanSpondy$Age)
+
+# Relevel the factor
+GermanSpondy$Age <- relevel(GermanSpondy$Age, ref = "Total")
+
+# Check the levels to ensure "Total" is now the first level
+levels(GermanSpondy$Age)
+
+
+# 'BETWEEN EACH AGE GROUP'
+
+lm1 <- lm(Death ~ as.factor(Year) + as.factor(Age)  + Incidence + 
+            LOS + `Regular DC` + `DC against medical advise` + Diagnoses + `Transfer to other hospital` + 
+            `DC to rehab/care home/hospice` + `Proportion of DC being Death` + `Death:Diagnoses` + 
+            `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+            `Diagnoses w/complex spinal reconstruction`, data = GermanSpondy)
+
+lm2 <- lm(Death ~ as.factor(Age) + Incidence + 
+            LOS + `Regular DC` + `DC against medical advise` + Diagnoses + `Transfer to other hospital` + 
+            `DC to rehab/care home/hospice` + `Proportion of DC being Death` + `Death:Diagnoses` + 
+            `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+            `Diagnoses w/complex spinal reconstruction`, data = GermanSpondy)
+
+
+anova(lm1, lm2)
+
+
+library(multcomp)
+
+lm_age_death <- lm(Death ~  as.factor(Year) + as.factor(Age) + Incidence + LOS + 
+               `Regular DC` + `DC against medical advise` + Diagnoses + 
+               `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+               `Proportion of DC being Death` + `Death:Diagnoses` + 
+               `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+               `Diagnoses w/complex spinal reconstruction`, 
+             data = GermanSpondy)
+
+summary(lm_age_death)
+
+
+
+
+
+#better regression analysis
+
+# Convert to factor and relevel
+GermanSpondy$Age <- relevel(GermanSpondy$Age, ref = "Age 0-19")
+
+# Run the linear model
+lm_age_death <- lm(Death ~  as.factor(Year) + as.factor(Age) + Incidence + LOS + 
+                     `Regular DC` + `DC against medical advise` + Diagnoses + 
+                     `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                     `Proportion of DC being Death` +
+                     `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+                     `Diagnoses w/complex spinal reconstruction`, 
+                   data = GermanSpondy)
+
+# Check the model summary
+summary(lm_age_death)
+
+
+
+
+
+
+
+
+
+
+
+
+# View the results
+# Perform ANOVA
+result <- aov(Death ~ as.factor(Age), data = GermanSpondy)
+
+# Check ANOVA table
+summary(result)
+
+
+#graph 6: regular dc vs dc against medical advise vs rehab vs other hospital
+
+library(readxl)
+Spondylodiscitis_Type_of_discharge <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Type of discharge.xlsx")
+
+don3 <- Spondylodiscitis_Type_of_discharge %>% 
+  filter(Type %in% c("Regular DC","DC against medical advise","Death", "Transfer to other hospital",
+"DC to rehab/care home/hospice", "Mean length of stay"))
+
+
+don3 %>%
+  ggplot( aes(x=Year, y=n, group=Type, color=Type)) +
+  geom_line() +
+  ggtitle("Type of discharge after spondyldoscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  ylab("days") + scale_color_brewer(palette = "Set1") +
+  theme_ipsum() + 
+  theme(
+    legend.position="bottom",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=12, hjust = 0.5),
+    axis.text.x = element_text(size = 8, angle = 90),
+    axis.title.y = element_text(size = 9, margin = margin(t = 0, r = 10, b = 0, l = 0)
+    ))
+
+
+DCanova <- anova(lm(n ~. + 0, data = Spondylodiscitis_Type_of_discharge))
+summary(DCanova)
+
+
+
+#graph 3: age-stratified LOS after spondylodiscitis 
+
+# Load dataset from github
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=LOS, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified length of stay as in-patient for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+
+
+lm_age_LOS <- lm(LOS ~ 0 +as.factor(Year) + as.factor(Age) + Incidence + Death + 
+                     `Regular DC` + `DC against medical advise` + Diagnoses + 
+                     `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                     `Proportion of DC being Death` + `Death:Diagnoses` + 
+                     `Diagnoses w/spinal fusion` + `Diagnoses w/vertebral body replacement` + 
+                     `Diagnoses w/complex spinal reconstruction`, 
+                   data = GermanSpondy)
+
+summary(lm_age_LOS)
+
+
+# View the results
+# Perform ANOVA
+result <- aov(Death ~ as.factor(Age) + as.factor(Year) , data = GermanSpondy)
+
+# Check ANOVA table
+summary(result)
+
+
+#graph 4: NOT USED age-stratified regular discharge after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=GermanSpondy$`Regular DC`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of regular discharges after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+#graph 5: NOT USED age-stratified discharge against medical advise after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`DC against medical advise`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of discharges against medical advise after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) +
+  facet_wrap(~Age)
+
+
+
+#graph 6: age-stratified discharge against medical advise:regular discharge after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`DC AMA:Regular FC`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified number of discharges against medical advise:regular discharges after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+
+#graph 7: age-stratified deaths after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=Death, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified numbers of deaths after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+#graph 7.5: age stratified mortality:diagnoses ratio line graph
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Death:Diagnoses`, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  ggtitle("Total death:diagnoses ratio of spondyldoscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+#graph 8: age-stratified population-adjusted incidence of deaths after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Population-adj. Deaths`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified, population-adjusted incidence of deaths after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+#graph 9: age-stratified transfer to other hospitals after spondylodiscitis 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`Transfer to other hospital`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified transfers to other hospitals after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+
+#graph 10: age-stratified DC to rehab/care home/hospice 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`DC to rehab/care home/hospice`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified transfers to other rehab/care home/hospice after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+#graph 11: age-stratified DC to rehab/care home/hospice 
+
+
+GermanSpondy %>%
+  ggplot(aes(x=Year, y=`DC to rehab/care home/hospice`, group=Age, fill=Age)) +
+  geom_area() +
+  scale_fill_viridis(discrete = TRUE) +
+  theme(legend.position="none") +
+  ggtitle("Age-stratified transfers to other rehab/care home/hospice after in-patient stay for Spondylodiscitis (M46.2, M46.3, M46.4)") +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(2, "lines"),
+    strip.text.x = element_text(size=9),
+    plot.title = element_text(size=14),
+    axis.text.x = element_text(size = 8, angle = 90)
+  ) + facet_wrap(~Age)
+
+
+#Correlation analysis
+
+
+################ correlation plot ##############
+
+library(readxl)
+install.packages("corrplot")
+library("corrplot")
+
+Spondylodiscitis_Epi_Germany_Analysis_Cor <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Epi Germany Analysis Cor.xlsx")
+
+
+CorSpondy <- cor(Spondylodiscitis_Epi_Germany_Analysis_Cor, use="pairwise.complete.obs")
+
+#option 1
+testRes = cor.mtest(CorSpondy, conf.level = 0.95)
+
+corrplot(CorSpondy, p.mat = testRes$p, method = "circle", type = "lower", insig="blank",
+         addCoef.col ='black', number.cex = 0.5, order = "AOE", diag=FALSE)
+
+#option 2
+corrplot(CorSpondy, p.mat = testRes$p, method = 'color', diag = FALSE, type = 'upper',
+         sig.level = c(0.001, 0.01, 0.05), pch.cex = 0.9, number.cex = 0.7, tl.col="black",
+         insig = 'label_sig', pch.col = 'grey20', order = 'AOE', col = COL2('RdYlBu'))
+
+#option 3
+library(PerformanceAnalytics)
+
+chart.Correlation(CorSpondy, method ="pearson" )
+
+multimodel.inference(TE = "yi", 
+                     seTE = "sei",
+                     data = CorRadio,
+                     interaction = FALSE)
+install.packages("psych")
+library(psych)
+
+print(CorSpondy)
+print(testRes$p)
+
+####ANOVA analysis: Outcome variable is Diagnoses
+
+
+ANOVA <- anova(lm( Diagnoses ~ . + 0,
+                    data = Spondylodiscitis_Epi_Germany_Analysis))
+summary(ANOVA)
+
+
+
+ANOVA <- anova(lm( Diagnoses ~ Year + Age + Population + 
+                     LOS + Regular DC + `DC against medical advise` + Death +
+                     `Transfer to other hospital` + `DC to rehab/care home/hospice` + 
+                     `Proportion of DC being Death` + `DC AMA:Regular FC` + `Population-adj. Deaths` + 
+                     0, data = Spondylodiscitis_Epi_Germany_Analysis))
+summary(ANOVA)
+
+
+#PLAYING AROUND
+
+library(ggplot2)
+library(dplyr)
+
+# Calculate per 100,000 diagnosis rate
+Spondylodiscitis_Epi_Germany_Analysis$Rate <- Spondylodiscitis_Epi_Germany_Analysis$Diagnoses / Spondylodiscitis_Epi_Germany_Analysis$Population * 100000
+
+# Plot scatter plot of diagnoses over the years for different age groups
+ggplot(Spondylodiscitis_Epi_Germany_Analysis, aes(x = Year, y = Rate, color = Age)) +
+  geom_point() +
+  labs(title = "Diagnosis Rate per 100,000 over Years for Different Age Groups",
+       x = "Year",
+       y = "Diagnosis Rate per 100,000",
+       color = "Age Group") +
+  theme_minimal()
+
+# For boxplots to show IQRs of diagnoses across different age groups
+ggplot(Spondylodiscitis_Epi_Germany_Analysis, aes(x = Age, y = Diagnoses)) +
+  geom_boxplot() +
+  labs(title = "Interquartile Ranges of Diagnoses Across Age Groups",
+       x = "Age Group",
+       y = "Diagnoses") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+#3d
+
+install.packages("rgl")
+library(rgl)
+install.packages("htmlwidgets")
+library(htmlwidgets)
+
+install.packages("scatterplot3d")
+library(scatterplot3d)
+
+scatterplot3d(Spondylodiscitis_Epi_Germany_Analysis$Death, Spondylodiscitis_Epi_Germany_Analysis$`Diagnoses w/spinal fusion`, Spondylodiscitis_Epi_Germany_Analysis$LOS, 
+              xlab = "Death", ylab = "Diagnoses w/spinal fusion", zlab = "LOS", pch = 19, color = "blue")
+
+#######
+library(plotly)
+
+
+
+
+
+## play cideo: animated over years
+
+
+library(plotly)
+
+# Create 3D scatter plot with Year as an animation
+plot <- plot_ly(Spondylodiscitis_Epi_Germany_Analysis, 
+                x = ~Diagnoses, y = ~Death, z = ~LOS, 
+                color = ~Age,
+                frame = ~Year,
+                type = "scatter3d", mode = "markers")
+
+# Customize plot layout
+layout <- layout(
+  scene = list(
+    xaxis = list(title = "Diagnoses"),
+    yaxis = list(title = "Death"),
+    zaxis = list(title = "LOS")
+  ),
+  updatemenus = list(
+    list(
+      type = "buttons",
+      buttons = list(
+        list(
+          label = "Play",
+          method = "animate",
+          args = list(list(frame = list(duration = 500, redraw = FALSE), fromcurrent = TRUE, mode = "immediate"))
+        ),
+        list(
+          label = "Pause",
+          method = "animate",
+          args = list(list(frame = list(duration = 0, redraw = FALSE), mode = "immediate"))
+        )
+      )
+    )
+  )
+)
+
+# Combine plot and layout
+plot <- plot %>% layout(layout)
+
+# Display the 3D plot
+plot
+
+##final
+library(dplyr)
+library(plotly)
+
+# Create 3D scatter plot with Year as an animation
+scatter_plot <- plot_ly(Spondylodiscitis_Epi_Germany_Analysis, 
+                        x = ~Diagnoses, y = ~Death, z = ~LOS, 
+                        color = ~Age,
+                        frame = ~Year,
+                        type = "scatter3d", mode = "markers")
+library(plotly)
+
+# Create 3D scatter plot with Year as an animation
+scatter_plot <- plot_ly(Spondylodiscitis_Epi_Germany_Analysis, 
+                        x = ~Diagnoses, y = ~Death, z = ~LOS, 
+                        color = ~Age,
+                        frame = ~Year,
+                        type = "scatter3d", mode = "markers")
+
+# Add smooth line connecting points
+line_data <- Spondylodiscitis_Epi_Germany_Analysis %>%
+  group_by(Year) %>%
+  arrange(Year) %>%
+  mutate(linenum = 1:n()) %>%
+  ungroup()
+
+line_plot <- plot_ly(line_data, 
+                     x = ~Diagnoses, y = ~Death, z = ~LOS, 
+                     color = ~Age,
+                     type = "scatter3d", mode = "lines",
+                     line = list(width = 2, color = "rgba(0,0,0,0.5)"))
+
+# Combine scatter plot and line plot
+plot <- subplot(scatter_plot, line_plot, nrows = 1, margin = 0.1)
+
+# Customize plot layout
+layout <- list(
+  scene = list(
+    xaxis = list(title = "Diagnoses"),
+    yaxis = list(title = "Death"),
+    zaxis = list(title = "LOS")
+  ),
+  updatemenus = list(
+    list(
+      type = "buttons",
+      buttons = list(
+        list(
+          label = "Play",
+          method = "animate",
+          args = list(list(frame = list(duration = 1500, redraw = FALSE), fromcurrent = TRUE, mode = "immediate"))
+        ),
+        list(
+          label = "Pause",
+          method = "animate",
+          args = list(list(frame = list(duration = 0, redraw = FALSE), mode = "immediate"))
+        )
+      )
+    )
+  )
+)
+
+# Set layout for scatter plot
+plot$layout <- layout
+
+# Display the 3D plot
+plot
+
+#create the widget
+htmlwidgets::saveWidget(plot, "my_plot.html")
+
+
+#machine learning prediction ##############################
+
+
+# Install and load necessary packages
+install.packages("tidyverse")
+install.packages("readxl")
+install.packages("forecast")
+
+library(tidyverse)
+library(readxl)
+library(forecast)
+library(readxl)
+
+# Read the data from the Excel file
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis /Spondylodiscitis Epi Germany Analysis.xlsx")
+
+# Rename the columns for convenience
+colnames(Spondylodiscitis_Epi_Germany_Analysis) <- c("Year", "Age", "Diagnoses", "LOS", "Death", "Diagnoses_with_spinal_fusion", "Diagnoses_with_vertebral_body_replacement", "Diagnoses_with_complex_spinal_reconstruction")
+
+# Convert the Age column to a factor
+Spondylodiscitis_Epi_Germany_Analysis$Age <- as.factor(Spondylodiscitis_Epi_Germany_Analysis$Age)
+
+# Convert the Year column to a Date format
+Spondylodiscitis_Epi_Germany_Analysis$Year <- as.Date(paste(Spondylodiscitis_Epi_Germany_Analysis$Year, "-01-01", sep = ""), format = "%Y-%m-%d")
+
+# Sort the data by Year and Age
+Spondylodiscitis_Epi_Germany_Analysis <- arrange(Spondylodiscitis_Epi_Germany_Analysis, Year, Age)
+
+# Create time series objects for each variable
+diagnoses_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$Diagnoses, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+los_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$LOS, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+death_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$Death, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+fusion_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$Diagnoses_with_spinal_fusion, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+vertebral_body_replacement_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$Diagnoses_with_vertebral_body_replacement, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+complex_spinal_reconstruction_ts <- ts(Spondylodiscitis_Epi_Germany_Analysis$Diagnoses_with_complex_spinal_reconstruction, frequency = 1, start = min(Spondylodiscitis_Epi_Germany_Analysis$Year))
+
+# Specify the forecasting horizon
+forecast_horizon <- 100
+
+# Forecast for Diagnoses
+diagnoses_forecast <- forecast(auto.arima(diagnoses_ts), h = forecast_horizon)
+
+# Forecast for LOS
+los_forecast <- forecast(auto.arima(los_ts), h = forecast_horizon)
+
+# Forecast for Death
+death_forecast <- forecast(auto.arima(death_ts), h = forecast_horizon)
+
+# Forecast for Diagnoses with spinal fusion
+fusion_forecast <- forecast(auto.arima(fusion_ts), h = forecast_horizon)
+
+# Forecast for Diagnoses with vertebral body replacement
+vertebral_body_replacement_forecast <- forecast(auto.arima(vertebral_body_replacement_ts), h = forecast_horizon)
+
+# Forecast for Diagnoses with complex spinal reconstruction
+complex_spinal_reconstruction_forecast <- forecast(auto.arima(complex_spinal_reconstruction_ts), h = forecast_horizon)
+
+# Extract the point forecasts for each variable
+diagnoses_forecast_values <- diagnoses_forecast$mean
+los_forecast_values <- los_forecast$mean
+death_forecast_values <- death_forecast$mean
+fusion_forecast_values <- fusion_forecast$mean
+vertebral_body_replacement_forecast_values <- vertebral_body_replacement_forecast$mean
+complex_spinal_reconstruction_forecast_values <- complex_spinal_reconstruction_forecast$mean
+
+# Print the forecasts
+cat("Diagnoses forecast:", diagnoses_forecast_values, "\n")
+cat("LOS forecast:", los_forecast_values, "\n")
+cat("Death forecast:", death_forecast_values, "\n")
+cat("Diagnoses with spinal fusion forecast:", fusion_forecast_values, "\n")
+cat("Diagnoses with vertebral body replacement forecast:", vertebral_body_replacement_forecast_values, "\n")
+cat("Diagnoses with complex spinal reconstruction forecast:", complex_spinal_reconstruction_forecast_values, "\n")
+
+# Model Selection
+accuracy <- accuracy(diagnoses_forecast)
+cat("Accuracy measures for Diagnoses forecast:\n")
+print(accuracy)
+
+# Model Evaluation
+evaluation_metrics <- accuracy(diagnoses_forecast)
+cat("Evaluation metrics for Diagnoses forecast:\n")
+print(evaluation_metrics)
+
+
+# Cross-Validation
+cv_results <- forecast:::accuracy(diagnoses_forecast)
+cat("Cross-validation results for Diagnoses forecast:\n")
+print(cv_results)
+
+# Uncertainty Analysis
+prediction_intervals <- cbind(diagnoses_forecast$lower, diagnoses_forecast$upper)
+cat("Prediction intervals for Diagnoses forecast:\n")
+print(prediction_intervals)
+
+
+
+
+# Time Series Plot
+time_series_data <- data.frame(
+  Year = time(diagnoses_ts),
+  Actual = as.vector(diagnoses_ts),
+  Forecast = c(rep(NA, length(diagnoses_ts) - length(diagnoses_forecast_values)), diagnoses_forecast_values)
+)
+time_series_plot <- ggplot(time_series_data, aes(x = Year)) +
+  geom_line(aes(y = Actual, color = "Actual")) +
+  geom_line(aes(y = Forecast, color = "Forecast")) +
+  labs(title = "Diagnoses Forecast: Actual vs. Forecasted",
+       x = "Year",
+       y = "Diagnoses") +
+  scale_color_manual(values = c(Actual = "blue", Forecast = "red")) +
+  theme_minimal()
+print(time_series_plot)
+
+# Forecast Plot
+forecast_plot <- autoplot(diagnoses_forecast) +
+  labs(title = "Diagnoses Forecast with Prediction Intervals",
+       x = "Year",
+       y = "Diagnoses")
+print(forecast_plot)
+
+# Residual Plot
+residuals <- residuals(diagnoses_forecast)
+residual_plot <- ggplot() +
+  geom_line(aes(x = time(diagnoses_ts), y = residuals)) +
+  labs(title = "Residuals Plot",
+       x = "Year",
+       y = "Residuals") +
+  theme_minimal()
+print(residual_plot)
+
+# Error Distribution Plot
+error_distribution_plot <- ggplot() +
+  geom_histogram(aes(x = residuals), bins = 30, fill = "lightblue", color = "black") +
+  labs(title = "Error Distribution Plot",
+       x = "Residuals",
+       y = "Frequency") +
+  theme_minimal()
+print(error_distribution_plot)
+
+# Actual vs. Predicted Plot
+actual_vs_predicted_data <- data.frame(
+  Actual = as.vector(diagnoses_ts),
+  Predicted = c(rep(NA, length(diagnoses_ts) - length(diagnoses_forecast_values)), diagnoses_forecast_values)
+)
+actual_vs_predicted_plot <- ggplot(actual_vs_predicted_data, aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "Actual vs. Predicted Plot",
+       x = "Actual",
+       y = "Predicted") +
+  theme_minimal()
+print(actual_vs_predicted_plot)
+
+# Autocorrelation Plot
+residual_acf_plot <- ggAcf(residuals) +
+  labs(title = "Autocorrelation of Residuals",
+       x = "Lag",
+       y = "Autocorrelation") +
+  theme_minimal()
+print(residual_acf_plot)
+
+
+
+#try 2: Just for Total - over next 100 years
+# Read the data from the Excel file
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis/Spondylodiscitis Epi Germany Analysis.xlsx")
+
+# Filter for the total age group
+total_data <- Spondylodiscitis_Epi_Germany_Analysis %>%
+  filter(Age == "Total")
+
+# Convert the Year column to numeric
+total_data$Year <- as.numeric(total_data$Year)
+
+# Create a time series object for the total diagnoses data
+diagnoses_ts <- ts(total_data$Diagnoses, frequency = 1, start = min(total_data$Year))
+
+# Specify the forecasting horizon
+forecast_horizon <- 100
+
+# Create a sequence of years for the forecast horizon
+forecast_years <- seq(2022, 2121)
+
+# Forecast for Diagnoses
+diagnoses_forecast <- forecast(auto.arima(diagnoses_ts), h = length(forecast_years))
+
+# Extract the point forecasts for the total diagnoses
+diagnoses_forecast_values <- diagnoses_forecast$mean
+
+# Create a data frame for the forecasted values
+forecast_data <- data.frame(Year = forecast_years, Diagnoses = diagnoses_forecast_values)
+
+# Print the forecasts
+print(forecast_data)
+
+# Model Selection
+# Perform auto.arima model selection with AIC criterion
+auto_arima_model <- auto.arima(diagnoses_ts)
+
+# Print the selected model
+print(auto_arima_model)
+
+# Model Evaluation
+# Obtain the residuals of the selected model
+residuals <- residuals(auto_arima_model)
+
+# Calculate the Root Mean Squared Error (RMSE)
+rmse <- sqrt(mean(residuals^2))
+
+# Calculate the Mean Absolute Percentage Error (MAPE)
+mape <- mean(abs(residuals / total_data$Diagnoses)) * 100
+
+# Print the evaluation metrics
+cat("Model Evaluation:\n")
+cat("RMSE: ", rmse, "\n")
+cat("MAPE: ", mape, "%\n")
+
+# Cross-Validation
+# Perform rolling origin cross-validation
+cv_results <- cv(auto_arima_model, K = 10, h = 1)
+
+# Calculate the Mean Squared Error (MSE) for each fold
+mse <- cv_results$MSE
+
+# Calculate the Mean Absolute Percentage Error (MAPE) for each fold
+mape <- cv_results$MAPE
+
+# Print the cross-validation results
+cat("\nCross-Validation Results:\n")
+cat("Fold\tMSE\t\tMAPE\n")
+for (i in 1:length(mse)) {
+  cat(i, "\t", mse[i], "\t", mape[i], "%\n")
+  
+}
+
+
+#try 3
+
+# Read the data from the Excel file
+Spondylodiscitis_Epi_Germany_Analysis <- read_excel("Desktop/Cambridge/Spondylodiscitis/Spondylodiscitis Epi Germany Analysis.xlsx")
+
+# Filter for the total age group
+total_data <- Spondylodiscitis_Epi_Germany_Analysis %>%
+  filter(Age == "Total")
+
+# Convert the Year column to numeric
+total_data$Year <- as.numeric(total_data$Year)
+
+# Create a time series object for the total diagnoses data
+diagnoses_ts <- ts(total_data$Diagnoses, frequency = 1, start = min(total_data$Year))
+
+# Specify the forecasting horizon
+forecast_horizon <- 100
+
+# Create a sequence of years for the forecast horizon
+forecast_years <- seq(2022, 2121)
+
+# Forecast for Diagnoses
+diagnoses_forecast <- forecast(auto.arima(diagnoses_ts), h = length(forecast_years))
+
+# Extract the point forecasts for the total diagnoses
+diagnoses_forecast_values <- diagnoses_forecast$mean
+
+# Create a data frame for the forecasted values
+forecast_data <- data.frame(Year = forecast_years, Diagnoses = diagnoses_forecast_values)
+
+# Print the forecasts
+print(forecast_data)
+
+# Time Series Plot
+time_series_data <- data.frame(
+  Year = total_data$Year,
+  Diagnoses = total_data$Diagnoses
+)
+time_series_plot <- ggplot(time_series_data, aes(x = Year, y = Diagnoses)) +
+  geom_line() +
+  labs(title = "Diagnoses Over Time",
+       x = "Year",
+       y = "Diagnoses") +
+  theme_minimal()
+print(time_series_plot)
+
+# Forecast Plot
+forecast_plot <- autoplot(diagnoses_forecast) +
+  labs(title = "Diagnoses Forecast",
+       x = "Year",
+       y = "Diagnoses")
+print(forecast_plot)
+
+# Residual Plot
+residual_plot <- ggplot() +
+  geom_line(aes(x = time(diagnoses_ts), y = residuals)) +
+  labs(title = "Residuals Plot",
+       x = "Year",
+       y = "Residuals") +
+  theme_minimal()
+print(residual_plot)
+
+# Error Distribution Plot
+error_distribution_plot <- ggplot() +
+  geom_histogram(aes(x = residuals), bins = 30, fill = "lightblue", color = "black") +
+  labs(title = "Error Distribution Plot",
+       x = "Residuals",
+       y = "Frequency") +
+  theme_minimal()
+print(error_distribution_plot)
+
+# Actual vs. Predicted Plot
+actual_vs_predicted_data <- data.frame(
+  Actual = total_data$Diagnoses,
+  Predicted = c(rep(NA, length(total_data$Diagnoses) - length(diagnoses_forecast_values)), diagnoses_forecast_values)
+)
+actual_vs_predicted_plot <- ggplot(actual_vs_predicted_data, aes(x = Actual, y = Predicted)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "Actual vs. Predicted Plot",
+       x = "Actual",
+       y = "Predicted") +
+  theme_minimal()
+print(actual_vs_predicted_plot)
+
